@@ -127,12 +127,13 @@ class BuilderSubscriber implements EventSubscriberInterface
 
         if( !isset( $lead[$leadfieldNameDoNotTrack] ) )
         {
-            return false;
+            //if no field found: default is not to track
+            return true;
         }
 
         //in test sendings this contains a string: [Einwilligung zum E-Mail Tracking]
         $value =  $lead[$leadfieldNameDoNotTrack];
-        if($value) 
+        if($value==0) 
         {
             return true;
         }
@@ -174,6 +175,7 @@ class BuilderSubscriber implements EventSubscriberInterface
      */
     public function convertUrlsToTokens(EmailSendEvent $event)
     {
+
         if ($event->isInternalSend() || $this->coreParametersHelper->get('disable_trackable_urls')) {
             // Don't convert urls
             return;
@@ -222,7 +224,6 @@ class BuilderSubscriber implements EventSubscriberInterface
                 {
                     $doNotTrack = true; 
                 }
-
                 if($doNotTrack)
                 {
                     //reset settings to original
