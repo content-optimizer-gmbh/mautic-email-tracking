@@ -3,7 +3,7 @@
 return [
     'name'        => 'Jotaworks Email Tracking',
     'description' => 'Plugin which selective prevents tracking in emails',
-    'version'     => '1.1',
+    'version'     => '1.2',
     'author'      => 'Jotaworks',
     'services' => [
         'events' => [

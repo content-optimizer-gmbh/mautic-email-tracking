@@ -104,6 +104,11 @@ class BuilderSubscriber implements EventSubscriberInterface
     {
         // Ensure it's not in the do not track list
         foreach ($donottrackUrls as $notTrackable) {
+            // Skip empty patterns: an empty regex (~~) would match every URL and
+            // disable tracking for all links (e.g. when the config field is left blank).
+            if ('' === $notTrackable) {
+                continue;
+            }
             if (preg_match('~'.$notTrackable.'~', $url)) {
                 return true;
             }
@@ -119,26 +124,24 @@ class BuilderSubscriber implements EventSubscriberInterface
             return false;
         }
 
-        return in_array($emailId, $donottrackEmailsWithId);
+        return in_array((string) $emailId, $donottrackEmailsWithId, true);
     }
 
     protected function isInDoNotTrackLead( $lead, $leadfieldNameDoNotTrack)
     {
-
-        if( !isset( $lead[$leadfieldNameDoNotTrack] ) )
-        {
-            //if no field found: default is not to track
-            return true;
+        // Default is to TRACK. Only skip tracking when the configured lead field is
+        // explicitly set to a falsy opt-out value (0/no/false). A missing or empty
+        // field means "no decision" and must not disable tracking for every contact.
+        if (empty($leadfieldNameDoNotTrack) || !array_key_exists($leadfieldNameDoNotTrack, $lead)) {
+            return false;
         }
 
-        //in test sendings this contains a string: [Einwilligung zum E-Mail Tracking]
-        $value =  $lead[$leadfieldNameDoNotTrack];
-        if($value==0) 
-        {
-            return true;
+        $value = $lead[$leadfieldNameDoNotTrack];
+        if (null === $value || '' === $value) {
+            return false;
         }
 
-        return false;
+        return in_array((string) $value, ['0', 'no', 'false'], true);
     }
 
     protected function getUrlFromRedirectToken($token) 
@@ -192,9 +195,11 @@ class BuilderSubscriber implements EventSubscriberInterface
 
         //prepare config settings
         $trackingSettings = $this->trackingSettings->getSettings();
-        $donottrackEmailsWithId = explode(',', $trackingSettings['donottrackEmailsWithId'] );
-        $donottrackUrls = explode(',', $trackingSettings['donottrackUrls'] );
-        $leadfieldNameDoNotTrack = $trackingSettings['leadfieldNameDoNotTrack'];
+        // Trim entries and drop empty ones so a blank config value does not become a
+        // match-all rule (empty email id / empty url regex).
+        $donottrackEmailsWithId = array_filter(array_map('trim', explode(',', (string) ($trackingSettings['donottrackEmailsWithId'] ?? ''))), 'strlen');
+        $donottrackUrls = array_filter(array_map('trim', explode(',', (string) ($trackingSettings['donottrackUrls'] ?? ''))), 'strlen');
+        $leadfieldNameDoNotTrack = $trackingSettings['leadfieldNameDoNotTrack'] ?? '';
 
         //get all tokens 
         $tokens = $event->getTokens();
