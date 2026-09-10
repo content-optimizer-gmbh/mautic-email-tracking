@@ -17,8 +17,10 @@ return [
                     'translator',
                     'doctrine.orm.entity_manager',
                     'jw.emailtracking.settings'
-                ]                
-            ]                                     
+                ],
+                // M5: event subscribers must be tagged explicitly (M4 auto-tagged the 'events' section).
+                'tags' => ['kernel.event_subscriber'],
+            ]
         ],
         'integrations' => [
             'mautic.integration.emailtracking' => [
@@ -31,7 +33,7 @@ return [
                     'request_stack',
                     'router',
                     'translator',
-                    'logger',
+                    'monolog.logger.mautic',
                     'mautic.helper.encryption',
                     'mautic.lead.model.lead',
                     'mautic.lead.model.company',

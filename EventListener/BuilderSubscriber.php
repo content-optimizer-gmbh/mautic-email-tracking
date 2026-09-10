@@ -2,7 +2,7 @@
 
 namespace MauticPlugin\JotaworksEmailTrackingBundle\EventListener;
 
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Mautic\CoreBundle\Form\Type\SlotButtonType;
 use Mautic\CoreBundle\Form\Type\SlotCodeModeType;
 use Mautic\CoreBundle\Form\Type\SlotDynamicContentType;
@@ -56,7 +56,7 @@ class BuilderSubscriber implements EventSubscriberInterface
     private $translator;
 
     /**
-     * @var EntityManager
+     * @var EntityManagerInterface
      */
     private $entityManager;
 
@@ -71,7 +71,7 @@ class BuilderSubscriber implements EventSubscriberInterface
         TrackableModel $trackableModel,
         RedirectModel $redirectModel,
         TranslatorInterface $translator,
-        EntityManager $entityManager,
+        EntityManagerInterface $entityManager,
         EmailTrackingSettings $trackingSettings
     ) {
         $this->coreParametersHelper = $coreParametersHelper;
@@ -86,7 +86,7 @@ class BuilderSubscriber implements EventSubscriberInterface
     /**
      * @return array
      */
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             EmailEvents::EMAIL_ON_SEND  => [
