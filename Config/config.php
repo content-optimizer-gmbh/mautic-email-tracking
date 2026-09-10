@@ -17,8 +17,10 @@ return [
                     'translator',
                     'doctrine.orm.entity_manager',
                     'jw.emailtracking.settings'
-                ]                
-            ]                                     
+                ],
+                // M5: event subscribers must be tagged explicitly (M4 auto-tagged the 'events' section).
+                'tags' => ['kernel.event_subscriber'],
+            ]
         ],
         'integrations' => [
             'mautic.integration.emailtracking' => [
@@ -27,11 +29,12 @@ return [
                     'event_dispatcher',
                     'mautic.helper.cache_storage',
                     'doctrine.orm.entity_manager',
-                    'session',
+                    // M7: Symfony 6/7 removed the `session` service — AbstractIntegration
+                    // takes RequestStack instead ($requestStack->getSession()).
                     'request_stack',
                     'router',
                     'translator',
-                    'logger',
+                    'monolog.logger.mautic',
                     'mautic.helper.encryption',
                     'mautic.lead.model.lead',
                     'mautic.lead.model.company',
@@ -39,7 +42,9 @@ return [
                     'mautic.core.model.notification',
                     'mautic.lead.model.field',
                     'mautic.plugin.model.integration_entity',
-                    'mautic.lead.model.dnc'
+                    'mautic.lead.model.dnc',
+                    // M7: 16th ctor arg (FieldsWithUniqueIdentifier)
+                    'mautic.lead.field.fields_with_unique_identifier',
                 ],
             ]
         ],  

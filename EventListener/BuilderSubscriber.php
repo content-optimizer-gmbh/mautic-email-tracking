@@ -2,7 +2,7 @@
 
 namespace MauticPlugin\JotaworksEmailTrackingBundle\EventListener;
 
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Mautic\CoreBundle\Form\Type\SlotButtonType;
 use Mautic\CoreBundle\Form\Type\SlotCodeModeType;
 use Mautic\CoreBundle\Form\Type\SlotDynamicContentType;
@@ -56,7 +56,7 @@ class BuilderSubscriber implements EventSubscriberInterface
     private $translator;
 
     /**
-     * @var EntityManager
+     * @var EntityManagerInterface
      */
     private $entityManager;
 
@@ -71,7 +71,7 @@ class BuilderSubscriber implements EventSubscriberInterface
         TrackableModel $trackableModel,
         RedirectModel $redirectModel,
         TranslatorInterface $translator,
-        EntityManager $entityManager,
+        EntityManagerInterface $entityManager,
         EmailTrackingSettings $trackingSettings
     ) {
         $this->coreParametersHelper = $coreParametersHelper;
@@ -86,7 +86,7 @@ class BuilderSubscriber implements EventSubscriberInterface
     /**
      * @return array
      */
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             EmailEvents::EMAIL_ON_SEND  => [
@@ -203,6 +203,10 @@ class BuilderSubscriber implements EventSubscriberInterface
 
         //get all tokens 
         $tokens = $event->getTokens();
+
+        // Merker ueber die ganze Schleife: greift IRGENDEINE Regel, faellt am Ende auch der
+        // Zaehlpixel weg. Das entspricht der urspruenglichen Absicht des Plugins.
+        $zaehlpixelEntfernen = false;
         foreach($tokens as $key => $value)
         {
             $doNotTrack = false;
@@ -232,8 +236,8 @@ class BuilderSubscriber implements EventSubscriberInterface
                 if($doNotTrack)
                 {
                     //reset settings to original
-                    $event->addToken('{tracking_pixel}', "");                    
                     $event->addToken($key, $url);
+                    $zaehlpixelEntfernen = true;
 
                     continue;
                 }
@@ -242,7 +246,38 @@ class BuilderSubscriber implements EventSubscriberInterface
 
         }
 
+        if ($zaehlpixelEntfernen) {
+            $this->entferneZaehlpixel($event);
+        }
     }
 
+    /**
+     * Schneidet das Zaehlpixel-img aus dem Mailtext.
+     *
+     * WARUM NICHT UEBER DEN TOKEN: Das Plugin setzte frueher $event->addToken('{tracking_pixel}', '').
+     * Das ist wirkungslos, weil MailHelper::getTokens() die Ereignis-Token zusammenfuehrt und den
+     * Pixel-Token danach bedingungslos neu setzt:
+     *
+     *     $tokens = array_merge($this->globalTokens, $this->eventTokens);
+     *     $tokens['{tracking_pixel}'] = $this->router->generate('mautic_email_tracker', ...);
+     *
+     * Der Pixel landete deshalb trotz greifender Regel in der Mail (nachgemessen am 10.09.2026).
+     *
+     * EmailSendEvent::setContent() reicht den Inhalt an MailHelper::setBody() mit
+     * $ignoreTrackingPixel = true weiter -- der Pixel wird also auch nicht neu angehaengt.
+     * setGeneratedPlainText() greift dabei nur, wenn gar kein Klartext gesetzt ist, ein
+     * handgeschriebener Textteil bleibt also unberuehrt.
+     */
+    protected function entferneZaehlpixel(EmailSendEvent $event): void
+    {
+        $inhalt = (string) $event->getContent();
+        if ('' === $inhalt || !str_contains($inhalt, '{tracking_pixel}')) {
+            return;
+        }
 
+        $bereinigt = preg_replace('~<img[^>]*\{tracking_pixel\}[^>]*>~i', '', $inhalt);
+        if (null !== $bereinigt && $bereinigt !== $inhalt) {
+            $event->setContent($bereinigt);
+        }
+    }
 }

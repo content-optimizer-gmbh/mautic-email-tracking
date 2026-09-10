@@ -1,3 +1,6 @@
+> **This branch targets Mautic 7.x.**
+> `master` holds the Mautic 4 version, branch `v5` the Mautic 5 version.
+
 # Mautic Email Tracking Control Plugin
 
 Plugin disables link tracking depending on email id, urls in emails or a lead field value 
