@@ -137,6 +137,12 @@ class BuilderSubscriber implements EventSubscriberInterface
         }
 
         $value = $lead[$leadfieldNameDoNotTrack];
+        // A contact that was just created or updated in this request (e.g. by a form submit)
+        // carries the normalized PHP value: boolean fields arrive as false, not as '0'.
+        // (string) false === '' would otherwise be read as "no decision" and keep tracking.
+        if (false === $value || 0 === $value) {
+            return true;
+        }
         if (null === $value || '' === $value) {
             return false;
         }
